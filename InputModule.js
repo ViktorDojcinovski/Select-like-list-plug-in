@@ -1,6 +1,9 @@
 /**
  * @name inputModule
  * @version 0.0.1
+ *
+ * Uses classie.js for class manipulation of the DOM elements.
+ * Embed classie.js before InputModule.js
 */
 
 
