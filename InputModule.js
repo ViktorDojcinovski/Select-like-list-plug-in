@@ -7,9 +7,15 @@
 */
 
 
-var InputModule = (function(window, document, inputModule) {
+function InputModule (window, document) {
 
-	function init (module) {
+	var num_of_inputs;
+
+	/**
+	 * Initialize the plugin
+	 * 
+	 */
+	function init () {
 
 	};
 
@@ -19,12 +25,13 @@ var InputModule = (function(window, document, inputModule) {
 	 * @param  {object} domElements [bind DOM elements in this sequence: 1.element, 2.input hidden element and 3.input placeholder element]
 	 * @return {module} 
 	 */
-	function cacheDom (domElements) {
-		this.element = domElements.element;
-		this.list = this.element.querySelectorAll('ul');
-		this.listElements = this.list[0].querySelectorAll('li');
-		this.input_hidden = domElements.input_hidden;
-		this.input = domElements.input;
+	function cacheDom (dom) {
+		this.formElement = dom['formElementId'];
+		this.lists = this.formElement.querySelectorAll('ul');
+		this.input_hidden = this.formElement.querySelectorAll('input[type=hidden].uniform');
+		this.input = this.formElement.getElementsByClassName('t_2');
+
+		num_of_inputs = this.input.length;
 
 		_bindEvents(this);
 
@@ -37,37 +44,73 @@ var InputModule = (function(window, document, inputModule) {
 	 * @param module [module with cacheDom() method]
 	 */
 	function _bindEvents (/*this module context*/ module) {
-		Array.prototype.forEach.call(module.listElements, function(dest) {
-			dest.onclick = function(e) {
-				element_code = e.target.dataset.destination;
-				element_name = e.target.textContent;
+		Array.prototype.forEach.call(module.lists, function(list) {
+			Array.prototype.forEach.call(list.querySelectorAll('li'), function(el, j) {
+				el.onclick = function(e) {
+					element_code = e.target.dataset.value;
+					element_name = e.target.textContent;
 
-				module.input_hidden.value = element_code;
-				module.input.value = element_name.trim();
+					var data_hidden = el.parentElement.previousElementSibling.dataset.hidden;
+						
+					for(var i = 0; i < num_of_inputs; i++) {
+						if(module.input_hidden[i].getAttribute('id') === data_hidden) {
 
-				classie.toggleClass(module.list[0], 'hidden');
+							module.input_hidden[i].value = e.target.dataset.value;
+							_shouldListen(module.input_hidden[i], 'change');
+							module.input_hidden[i].nextElementSibling.value = element_name.trim();
+						}
+					}
+
+					classie.toggleClass(el.parentElement, 'hidden');
+				}
+			})
+		});
+		Array.prototype.forEach.call(module.input, function(input){
+			input.onclick = function(e) {
+				e.preventDefault();
+				this.value = "";
+
+				var _thisElementSibling = this.nextElementSibling;
+
+				Array.prototype.forEach.call(module.lists, function(list, i) { 
+					if(module.lists[i] !== _thisElementSibling) {
+						classie.addClass(list, 'hidden');
+					}
+				});
+				classie.toggleClass(this.nextElementSibling, 'hidden');
 			}
 		});
-		module.input.onclick = function(e) {
-			e.preventDefault();
-			this.value = "";
-			classie.toggleClass(module.list[0], 'hidden');
-		};
 		document.onclick = function(e){
-		    if (!classie.hasClass(e.target, "t_2") && !classie.hasClass(module.list[0], 'hidden')) {
-		      classie.addClass(module.list[0], 'hidden');
+		    if (!classie.hasClass(e.target, "t_2") || !e.target.name == 'LI') {
+		      Array.prototype.forEach.call(module.lists, function(list) { classie.addClass(list, 'hidden'); });
 		    }
 		};
 	};
 
-	return  inputModule = {
+	function _simulateEvent(el, eventName) {
+	  var event = new MouseEvent(eventName, {
+	    'view': window,
+	    'bubbles': true,
+	    'cancelable': true
+	  });
+	  var cancelled = !el.dispatchEvent(event);
+	  if (cancelled) {
+	    // A handler called preventDefault.
+	    
+	  } else {
+	    // None of the handlers called preventDefault.
+	    
+	  }
+	}
+
+	function _shouldListen(element, eventName) {
+		if(element.dataset.shouldListen == 'yes') {
+			_simulateEvent(element, eventName)
+		}
+	}
+
+	return {
 		cacheDom: cacheDom
 	};
 
-})(window, document, inputModule || {});
-
-InputModule.cacheDom({
-	element:document.getElementById('destination'), 
-	input_hidden:document.getElementById('t'), 
-	input: destination.getElementsByClassName('t_2')[0]
-});
+};
